@@ -1,24 +1,18 @@
-from flask import Flask, json, request
+from flask import Flask, request
 from tensorflow.keras.models import model_from_json
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 import numpy as np
-import pandas as pd
 import cv2
-import pickle
 import base64
 from io import BytesIO
 from PIL import Image
-from typing import List
-from pydantic import BaseModel
-import tensorflow as tf
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-json_file = open('model.json', 'r')
-loaded_model_json = json_file.read()
-json_file.close()
+with open('model.json', 'r') as json_file:
+    loaded_model_json = json_file.read()
 loaded_model = model_from_json(loaded_model_json)
 loaded_model.load_weights("model.h5")
 
@@ -42,7 +36,9 @@ def home():
 
 @app.route("/", methods=['POST'])
 def read_root():
-    data = json.loads(request.data)
+    data = request.get_json(silent=True)
+    if not data or 'image' not in data:
+        return {"error": "Missing image data."}, 400
     predict_img = []
     for item in data['image']:
         image = get_cv2_image_from_base64_string(item)

@@ -1,6 +1,6 @@
 
 import { ThemeProvider } from "styled-components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { darkTheme, } from "./utils/themes";
 import styled from 'styled-components';
 import ImageUpload from "./Components/ImageUpload";
@@ -9,7 +9,6 @@ import Loader from "./Components/Loader/Loader";
 import ResultCard from "./Components/ResultCard";
 import axios from 'axios';
 import { Images } from "./data";
-import { useEffect } from "react";
 
 const Body = styled.div`
 display: flex; 
@@ -86,12 +85,9 @@ const SelectedImages = styled.div`
 
 const Button = styled.div`
   min-height: 48px;
-  border-radius: 8px;;
-  color: ${({ theme }) => theme.soft2};
-    font-weight: 600;
-    font-size: 16px;
-    background: ${({ theme }) => theme.primary};
-    color: white;
+  border-radius: 8px;
+  background: ${({ theme }) => theme.primary};
+  color: white;
   margin: 3px 20px;
   font-weight: 600;
   font-size: 16px;
@@ -122,21 +118,31 @@ function App() {
   const [predictions, setPredictions] = useState();
   const [loading, setLoading] = useState(false);
   const [showPrediction, setShowPrediction] = useState(false);
+  const [error, setError] = useState("");
 
   const generatePrediction = async () => {
-    setLoading(true);
-    const imageData = []
-    for (let i = 0; i < images.length; i++) {
-      imageData.push(images[i].base64_file)
+    if (!images || images.length === 0) {
+      return;
     }
-    const data = { image: imageData }
-    const res = await axios.post('https://brain-tumor-detection-b5qi.onrender.com/', data).catch((err) => {
-      console.log(err);
-    });
-    setPredictedImage(images)
-    setPredictions({ image: imageData, result: res.data.result })
-    setShowPrediction(true);
-    setLoading(false);
+    setLoading(true);
+    setError("");
+    try {
+      const imageData = [];
+      for (let i = 0; i < images.length; i++) {
+        imageData.push(images[i].base64_file);
+      }
+      const data = { image: imageData };
+      const res = await axios.post('https://brain-tumor-detection-b5qi.onrender.com/', data);
+      setPredictedImage(images);
+      setPredictions({ image: imageData, result: res.data.result });
+      setShowPrediction(true);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to fetch predictions right now. Please try again.");
+      setShowPrediction(false);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const generateNewImages = () => {
@@ -182,6 +188,7 @@ function App() {
               <Button onClick={() => generateNewImages()}>Get Sample Images</Button>
               {images &&
                 <Button onClick={() => { generatePrediction() }}>PREDICT</Button>}
+              {error && <TextCenter>{error}</TextCenter>}
             </FlexItem>
             {showPrediction &&
               <FlexItem style={{ gap: '22px' }}>
